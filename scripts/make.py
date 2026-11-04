@@ -34,7 +34,7 @@ def split_sub(s, limit=21):
             for j in range(limit, max(limit - 10, 4), -1):
                 a, b = p[j - 1], p[j]
                 depth = p[:j].count("(") - p[:j].count(")") + p[:j].count("[") - p[:j].count("]")
-                if depth == 0 and not (re.match(r"[\w\[\(\.'\"]", a, re.A) and re.match(r"[\w\]\)\.'\",]", b, re.A)):
+                if depth == 0 and not (re.match(r"[\w\[\(\.'\"\-]", a, re.A) and re.match(r"[\w\]\)\.'\",\-]", b, re.A)):
                     k = j
                     break
             final.append(p[:k].rstrip())

@@ -98,6 +98,7 @@ def say(s):
     s = re.sub(r"(?<=[A-Za-z])\.(?=[A-Za-z])", " 点 ", s)
     s = s.replace("()", "").replace("_", " ")
     s = s.replace("“", "").replace("”", "").replace("《", "").replace("》", "")
+    s = re.sub(r"(?<=\d),(?=\d{3}\b)", "", s)          # 千分位逗号：491,520 → 491520
     s = re.sub(r"(\d+(?:\.\d+)?)\s*%", r"百分之\1", s)
     s = re.sub(r"(?<![\d.])2\s*(?=(次|个|轮|种|倍|位|条|张|层|份|段|行))", "两", s)
     s = re.sub(r"\d+(?:\.\d+)?", num_cn, s)
