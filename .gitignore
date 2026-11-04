@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+# 视频项目的中间产物（技能目录里本不该出现，以防万一）
+seg/
+audio/
+sheets/
+stills/
+*.mp4
+*.wav
+venv
