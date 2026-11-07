@@ -122,19 +122,21 @@ def build_audio(path="audio/mix.wav"):
             sig += 0.5 * np.sin(2 * np.pi * f * 1.003 * tt)
         pad[i0:i1] += (sig * env * (0.75 + 0.25 * np.sin(2 * np.pi * 0.11 * tt))).astype(np.float32)
     pad /= np.abs(pad).max() + 1e-6
-    # 侧链压低：有人声时音乐降低
-    k5 = SR // 5
-    cs = np.concatenate([[0.0], np.cumsum(np.abs(speech), dtype=np.float64)])
-    idx = np.arange(N)
-    lo = np.clip(idx - k5 // 2, 0, N); hi = np.clip(idx + k5 // 2, 0, N)
-    envs = ((cs[hi] - cs[lo]) / k5).astype(np.float32)
-    del cs, idx, lo, hi
-    duck = 1 - 0.55 * np.clip(envs * 12, 0, 1)
-    music = pad * 0.055 * duck
-    t = np.arange(N, dtype=np.float32) / SR
-    fade = np.clip(np.minimum(t / 2.0, (TOTAL - t) / 3.0), 0, 1)
-    del t
-    music *= fade
+    # 侧链压低：有人声时音乐降低（按 10ms 块计算包络，再展开回采样点，省内存）
+    blk = SR // 100
+    nb = (N + blk - 1) // blk
+    a = np.zeros(nb * blk, np.float32)
+    a[:N] = np.abs(speech)
+    be = a.reshape(nb, blk).mean(axis=1)
+    del a
+    be = np.convolve(be, np.ones(20, np.float32) / 20, mode="same")
+    duck_b = (1 - 0.55 * np.clip(be * 12, 0, 1)).astype(np.float32)
+    tb = np.arange(nb, dtype=np.float32) * blk / SR
+    fade_b = np.clip(np.minimum(tb / 2.0, (TOTAL - tb) / 3.0), 0, 1).astype(np.float32)
+    gain = np.repeat(duck_b * fade_b * 0.055, blk)[:N]
+    pad *= gain
+    music = pad
+    del gain, duck_b, fade_b, tb, be
     # 转场 whoosh
     rnd = np.random.default_rng(0)
     for sc in TL[1:]:
@@ -155,8 +157,10 @@ def build_audio(path="audio/mix.wav"):
             out[j0:j1] = (cs[idx] - cs[lo]) / win
         env = np.sin(np.pi * k) ** 2
         music[i:i + L] += out * env * 0.05
-    mixd = speech * 0.95 + music
-    mixd = np.clip(mixd, -1, 1)
+    speech *= 0.95
+    speech += music
+    del music, pad
+    mixd = np.clip(speech, -1, 1, out=speech)
     with wave.open(path, "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
