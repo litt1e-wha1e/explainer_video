@@ -37,10 +37,29 @@ def split_sub(s, limit=21):
                 if depth == 0 and not (re.match(r"[\w\[\(\.'\"\-]", a, re.A) and re.match(r"[\w\]\)\.'\",\-]", b, re.A)):
                     k = j
                     break
+            else:
+                for j in range(limit + 1, len(p)):   # 往后找最近的合法断点（避免拆开长英文词）
+                    a, b = p[j - 1], p[j]
+                    depth = p[:j].count("(") - p[:j].count(")") + p[:j].count("[") - p[:j].count("]")
+                    if depth == 0 and not (re.match(r"[\w\[\(\.'\"\-]", a, re.A) and re.match(r"[\w\]\)\.'\",\-]", b, re.A)):
+                        k = j
+                        break
+                else:
+                    k = len(p)
             final.append(p[:k].rstrip())
             p = p[k:].lstrip()
+            if not p:
+                break
         final.append(p)
-    return [x for x in final if x.strip()]
+    final = [x for x in final if x.strip()]
+    # 过短的尾巴（如单独一个英文词）并回上一行
+    merged = []
+    for x in final:
+        if merged and len(x.strip("，。；：？！; ")) <= 6 and len(merged[-1]) + len(x) <= limit + 8:
+            merged[-1] = merged[-1].rstrip() + ("" if re.match(r"[，。；：？！]", x) else " " if re.search(r"[A-Za-z0-9]$", merged[-1]) else "") + x.lstrip()
+        else:
+            merged.append(x)
+    return merged
 
 
 # ------------------------------------------------------------- 时间线

@@ -396,9 +396,15 @@ def code_line(cv, s, x, y, size=24, a=1.0):
                 c = (225, 228, 236)
         else:
             c = (190, 196, 210)
-        if not t.isspace():
-            cv.drawString(t, xx, base, f, _paint(c, a))
-        xx += f.measureText(t)
+        if t.isascii():
+            if not t.isspace():
+                cv.drawString(t, xx, base, f, _paint(c, a))
+            xx += f.measureText(t)
+        else:  # 非 ASCII（中文等）按字形回退字体
+            for rt, rk in runs(t, "m"):
+                rf = font(rk, size)
+                cv.drawString(rt, xx, base, rf, _paint(c, a))
+                xx += rf.measureText(rt)
 
 
 def code(cv, lines, x, y, size=24, a=1.0, hl=None, title="gpt.py", p=1.0, w=None):
